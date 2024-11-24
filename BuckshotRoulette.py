@@ -21,7 +21,7 @@ os.makedirs(data_dir, exist_ok=True)
 
 
 def remove_player_by_name(player_name: str, p_list: list) -> bool:
-    """通过实例的name属性删除列表中第一个符合条件的实例，返回操作是否成功"""
+    """通过实例的name属性删除列表中第一个符合条件的实例,返回操作是否成功"""
     # 创建列表的副本
     temp_list = p_list.copy()
     
@@ -62,7 +62,7 @@ class player:
         self.level = level
 
     def have_tools(self,num):
-        tools_list = ["knife","cigarette","magnifying glass","handcuffs","drink"]
+        tools_list = ["knife","cigarette","magnifying glass","handcuff","drink","drug","adrenalin"]
         for i in range(num):
             n = random.randint(0,len(tools_list)-1)
             self.tools.append(tools_list[n])
@@ -73,7 +73,7 @@ class player:
         return n
     
     def show_hp(self):
-        print("The hp of {} is {}".format(self.name,self.hp))
+        print("\nThe hp of {} is {}".format(self.name,self.hp))
 
     def to_csv(self):
             # 使用json.dumps将tools列表转换为JSON格式的字符串
@@ -102,24 +102,26 @@ class gun:
         m = sum(1 for value in self.order if not value)
         print("The gun is reloaded, {} real, {} fake.".format(n,m))
 
-    def shoot(self,player,opposite):
+    def shoot(self,player,opposite,num = 1):
         if self.order == []:
             self.reload()
         x = self.order.pop(0)
         if x:
-            player.hp -= 1
+            player.hp -= num
             print("Ball cartridge!") 
             player.show_hp()
             opposite.show_hp()
             print("")
         if not x:
-            print("Blank cartridge\n")
+            print("Blank cartridge")
+        if num != 1:
+            print("the gun is restored")
         return x
     
 class lunpandu:
     """游戏资源及各行为的类"""
     def __init__(self):
-        self.edition = 1.0
+        self.edition = 2.0
         self.maker = "Sihan CHEN"
     
     def __str__(self):
@@ -133,12 +135,13 @@ class lunpandu:
         if choose == "manage":
             self.manage()
         elif choose == "about":
-            print ("Edition：{}\nMaker：{}\nThanks for your playing!".format(self.edition,self.maker))
+            print ("Edition: {}\nMaker: {}\nThanks for your playing!".format(self.edition,self.maker))
         elif choose == "start":
             self.run_game()
         elif choose =="rule":
             print("玩家开始游戏后会和恶魔面对面坐着，每回合开始恶魔会在霰弹枪中填装任意数量的实弹和空弹，填装前会为玩家们展示具体有几发，填装后顺序随机，可以选择射击对方或自己。")
             print("之后玩家与恶魔依次出手，可以选择向对方开枪或者向自己开枪。如果向自己开枪并且是空弹，则对方跳过一回合，如果是实弹则减少一点生命。向对方开枪如果是空弹则不造成任何效果，如果是实弹则降低对方一点生命。双方直到一方生命归零，游戏结束。")
+        
         elif choose == "exit":
             sys.exit("Thanks for playing.")
         else:
@@ -280,6 +283,9 @@ class lunpandu:
     
     def check_gun(self,gun,player,computer1):
         if gun.order == []:
+            num = random.randint(2,4)
+            player.have_tools(num)
+            computer1.have_tools(num)
             gun.reload()
             print(player)
             print(computer1)
@@ -306,16 +312,24 @@ class lunpandu:
             computer_list.append(player("Cheese Sandwich"))
         computer = computer_list[0]
         Flag = True
+        num = 1
+        handcuff = False
         while Flag:
             self.check_gun(the_gun,the_one,computer)
             if self.check_player(the_one,Flag):
                 computer.level = 0
                 break
             if self.check_computer(computer,the_one):
+                the_gun.reload()
                 continue
             while Flag:
+                if self.check_player(the_one,Flag):
+                    computer.level = 0
+                    break
+                if self.check_computer(computer,the_one):
+                    the_gun.reload()
                 self.check_gun(the_gun,the_one,computer)
-                choose2 = self.get_action_choice() #加个检查还有退出使用函数封装减少浪费过去式
+                choose2 = self.get_action_choice() 
                 if choose2 == "shoot":
                     self.check_gun(the_gun,the_one,computer)
                     choose3 = self.get_shoot_choice()
@@ -323,28 +337,135 @@ class lunpandu:
                         continue
                     elif choose3 == "I":
                         print("\nYou shoot yourself")
-                        result = the_gun.shoot(the_one,computer)                        
+                        result = the_gun.shoot(the_one,computer,num)                        
                         if not result:
                             continue
                     elif choose3 == "dealer":
                         print("\nYou shoot the dealer")
-                        result = the_gun.shoot(computer,the_one)
+                        result = the_gun.shoot(computer,the_one,num)
                 elif choose2 == "tools":
-                    print("正在施工")
-                    continue
+                    while True:
+                        #"knife","cigarette","magnifying glass","handcuff","drink","drug","adrenalin"
+                        print("\n",the_one.tools)
+                        choose_tools = input("Which one? (use 'back' to go back)")
+                        if choose_tools in the_one.tools:
+                            the_one.tools.remove(choose_tools)
+                            break
+                        elif choose_tools == "back":
+                            break
+                        else:
+                            print("You don't have this tool, choose again.")
+                    if choose_tools == "back":
+                        continue
+                    elif choose_tools == "cigarette":
+                        if the_one.hp < 4:
+                            the_one.hp += 1
+                            print("\nrecovered")
+                            the_one.show_hp()
+                        else:
+                            print("Your hp is full.")
+                            the_one.show_hp()
+                        continue
+                    elif choose_tools == "knife":
+                        num = 2
+                        print("The battel is cut short.")
+                        continue
+                    elif choose_tools == "magnifying glass":
+                        print("\nObserve the gun")
+                        if the_gun.order[0]:
+                            print("Next one is ball cartridge.")
+                        elif not the_gun.order[0]:
+                            print("Next one is blank cartridge.")
+                        continue
+                    elif choose_tools == "handcuff":
+                        if not handcuff:
+                            handcuff = True
+                            print(f"{computer.name} is handcuffed.")
+                        else:
+                            print(f"{computer.name} has already been handcuffed")
+                            the_one.tools.append("handcuff")
+                        continue
+                    elif choose_tools == "drink":
+                        x = the_gun.order.pop(0)
+                        if x:
+                            y = "ball cartridge"
+                        if not x:
+                            y = "blank cartridge"
+                        print("You unload a {}".format(y))
+                        continue
+                    elif choose_tools == "drug":
+                        num1 = random.randint(1,100)
+                        print("You have a drug.")
+                        if num1 > 60:
+                            the_one.hp += 2
+                            if the_one.hp > 4:
+                                the_one.hp = 4
+                            print("Nice.")
+                        else:
+                            the_one.hp -= 1
+                            print("Oh…")
+                        the_one.show_hp()
+                        computer.show_hp()
+                        continue
+                    elif choose_tools == "adrenalin":
+                        print(computer.tools)
+                        while True:
+                            t = input("Steal which tool?(or input 'give up')")
+                            if t == "adrenalin":
+                                print("you cannot steal adrenalin")
+                            elif t in computer.tools:
+                                computer.tools.remove(t)
+                                the_one.tools.append(t)
+                                break
+                            elif t == "give up":
+                                break
+                        continue
                 elif choose2 =="exit":
                     self.save()
                     Flag = False
+                num = 1
+                if handcuff:
+                    print("The dealer is handcuffed, new round")
+                    handcuff = False
+                    continue
                 break
             self.check_gun(the_gun,the_one,computer)
             if self.check_player(the_one,Flag):
                 computer.level = 0
                 break
             if self.check_computer(computer,the_one):
+                the_gun.reload()
                 continue
+            #"knife","cigarette","magnifying glass","handcuff","drink","drug","adrenalin"
             while Flag:
                 self.check_gun(the_gun,the_one,computer)
+                if self.check_player(the_one,Flag):
+                    computer.level = 0
+                    break
+                if self.check_computer(computer,the_one):
+                    the_gun.reload()
+                    continue
                 #之后是人机的回合
+                if computer.hp < 4 and "cigarette" in computer.tools:
+                    print("\nHe uses a cigarette")
+                    computer.tools.remove("cigarette")
+                    computer.hp += 1
+                    the_one.show_hp()
+                    computer.show_hp()
+                if computer.hp == 2 and "drug" in computer.tools:
+                    print("\nHe has a drug.")
+                    computer.tools.remove("drug")
+                    num1 = random.randint(1,100)
+                    if num1 > 60:
+                        computer.hp += 2
+                        if the_one.hp > 4:
+                            the_one.hp = 4
+                        print("He recovered.")
+                    else:
+                        the_one.hp -= 1
+                        print("He is poisoned")
+                    the_one.show_hp()
+                    computer.show_hp()
                 if the_gun.order == []:
                     the_gun.reload()
                 n = sum(1 for value in the_gun.order if value)
@@ -352,8 +473,20 @@ class lunpandu:
                 s = m+n
                 if n/s > 0.72:
                     decide = True #向对方射击
+                    if "knife" in computer.tools:
+                        print("\nHe uses a knife.")
+                        print("The battel is cut short.")
+                        computer.tools.remove("knife")
+                        num = 2
                 elif n/s < 0.24:
                     decide = False #向自己射击
+                elif "magnifying glass" in computer.tools:
+                    print("He uses a magnifying glass")
+                    computer.tools.remove("magnifying glass")
+                    if the_gun.order[0]:
+                        decide = True
+                    else:
+                        decide = False
                 else:
                     decide = random.choice([True,False])
                 if not decide:
@@ -364,6 +497,11 @@ class lunpandu:
                 elif decide:
                     print("\nDealer shoot you")        
                     result = the_gun.shoot(the_one,computer)
+                num = 1
+                if handcuff:
+                    "The dealer is handcuffed, new round"
+                    handcuff = False
+                    continue
                 break
 
 if __name__ == "__main__":
