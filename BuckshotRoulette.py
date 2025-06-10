@@ -95,16 +95,23 @@ class gun:
         self.num = 6
         self.order = []
 
-    def reload(self):
+    def reload(self,player,opposite):
+        num = random.randint(2,4)
+        player.have_tools(num)
+        opposite.have_tools(num)
         self.num = random.randint(2,8)
         self.order = rearrange_list(self.num)
         n = sum(1 for value in self.order if value)
         m = sum(1 for value in self.order if not value)
+        print("Now:")
+        print(player)
+        print(opposite)
+        print("")
         print("The gun is reloaded, {} real, {} fake.".format(n,m))
 
     def shoot(self,player,opposite,num = 1):
         if self.order == []:
-            self.reload()
+            self.reload(player,opposite)
         x = self.order.pop(0)
         if x:
             player.hp -= num
@@ -273,22 +280,15 @@ class lunpandu:
             player.hp = 4
             player1.tools = []
             player.tools = []
-            print("Now:")
-            print(player1)
-            print(player)
-            print("")
             self.save()
             return True
         return False
     
     def check_gun(self,gun,player,computer1):
         if gun.order == []:
-            num = random.randint(2,4)
-            player.have_tools(num)
-            computer1.have_tools(num)
-            gun.reload()
-            print(player)
-            print(computer1)
+            gun.reload(player,computer1)
+            return True
+        return False
 
     def run_game(self):
         """游戏主循环"""
@@ -302,11 +302,13 @@ class lunpandu:
                 create(player_list)
             for p in player_list:
                 print(p)
-            choose1 = input("\nChoose your player: ")
+            choose1 = input("\nChoose your player: (or input 'back' to go back) ")
             for gamer in player_list:
                 if gamer.name == choose1:
                     the_one = gamer
                     break
+                elif choose1 == "back":
+                    return
         print("\nGame start")
         if computer_list == []:
             computer_list.append(player("Cheese Sandwich"))
@@ -315,23 +317,25 @@ class lunpandu:
         num = 1
         handcuff = False
         while Flag:
-            self.check_gun(the_gun,the_one,computer)
+            if self.check_gun(the_gun,the_one,computer):
+                continue
             if self.check_player(the_one,Flag):
                 computer.level = 0
                 break
             if self.check_computer(computer,the_one):
-                the_gun.reload()
+                the_gun.reload(the_one,computer)
                 continue
             while Flag:
                 if self.check_player(the_one,Flag):
                     computer.level = 0
                     break
                 if self.check_computer(computer,the_one):
-                    the_gun.reload()
+                    the_gun.reload(the_one,computer)
                 self.check_gun(the_gun,the_one,computer)
                 choose2 = self.get_action_choice() 
                 if choose2 == "shoot":
-                    self.check_gun(the_gun,the_one,computer)
+                    if self.check_gun(the_gun,the_one,computer):
+                        continue
                     choose3 = self.get_shoot_choice()
                     if choose3 is None:
                         continue
@@ -429,21 +433,23 @@ class lunpandu:
                     handcuff = False
                     continue
                 break
-            self.check_gun(the_gun,the_one,computer)
+            if self.check_gun(the_gun,the_one,computer):
+                continue
             if self.check_player(the_one,Flag):
                 computer.level = 0
                 break
             if self.check_computer(computer,the_one):
-                the_gun.reload()
+                the_gun.reload(the_one,computer)
                 continue
             #"knife","cigarette","magnifying glass","handcuff","drink","drug","adrenalin"
             while Flag:
-                self.check_gun(the_gun,the_one,computer)
+                if self.check_gun(the_gun,the_one,computer):
+                    break
                 if self.check_player(the_one,Flag):
                     computer.level = 0
                     break
                 if self.check_computer(computer,the_one):
-                    the_gun.reload()
+                    the_gun.reload(the_one,computer)
                     continue
                 #之后是人机的回合
                 if computer.hp < 4 and "cigarette" in computer.tools:
@@ -467,7 +473,7 @@ class lunpandu:
                     the_one.show_hp()
                     computer.show_hp()
                 if the_gun.order == []:
-                    the_gun.reload()
+                    the_gun.reload(the_one,computer)
                 n = sum(1 for value in the_gun.order if value)
                 m = sum(1 for value in the_gun.order if not value)
                 s = m+n
@@ -491,12 +497,12 @@ class lunpandu:
                     decide = random.choice([True,False])
                 if not decide:
                     print("\nDealer shoot himself")                       
-                    result = the_gun.shoot(computer,the_one)
+                    result = the_gun.shoot(computer,the_one,num)
                     if not result:
                         continue           
                 elif decide:
                     print("\nDealer shoot you")        
-                    result = the_gun.shoot(the_one,computer)
+                    result = the_gun.shoot(the_one,computer,num)
                 num = 1
                 if handcuff:
                     "The dealer is handcuffed, new round"
